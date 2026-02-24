@@ -141,12 +141,31 @@ app.get('/install.sh', (c) => {
   const content = `#!/bin/bash
 set -e
 echo "--- VPS AI Dashboard Agent Installer ---"
-INSTALL_DIR="\\$HOME/vps-ai-agent"
+export INSTALL_DIR="\\$HOME/vps-ai-agent"
 mkdir -p "\\$INSTALL_DIR"
 cd "\\$INSTALL_DIR"
 
 echo "Downloading agent.py..."
 curl -sSL "${protocol}://${host}/agent.py" -o agent.py
+
+# Try to install dependencies if on Debian/Ubuntu
+if command -v apt-get &> /dev/null; then
+    SUDO=""
+    if [ "\$(id -u)" -ne 0 ]; then
+        if command -v sudo &> /dev/null; then
+            SUDO="sudo"
+        fi
+    fi
+    echo "Checking for required system packages..."
+    if ! python3 -m venv --help &> /dev/null; then
+        echo "python3-venv seems to be missing. Attempting to install..."
+        \$SUDO apt-get update && \$SUDO apt-get install -y python3-venv || echo "Could not install python3-venv automatically."
+    fi
+    if ! python3 -c "import distutils" 2>/dev/null; then
+        echo "python3-distutils seems to be missing. Attempting to install..."
+        \$SUDO apt-get update && \$SUDO apt-get install -y python3-distutils || echo "Could not install python3-distutils automatically."
+    fi
+fi
 
 echo "Setting up virtual environment..."
 if ! python3 -m venv venv 2>/dev/null; then
