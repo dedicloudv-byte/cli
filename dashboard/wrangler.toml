@@ -1,0 +1,17 @@
+name = "vps-ai-dashboard"
+main = "src/index.ts"
+compatibility_date = "2024-05-29"
+
+[durable_objects]
+bindings = [
+  { name = "VPS_BRIDGE", class_name = "VPSBridge" }
+]
+
+[[durable_objects.namespaces]]
+name = "VPS_BRIDGE"
+class_name = "VPSBridge"
+
+[vars]
+# In a real app, these should be secrets
+# AUTH_TOKEN = "your-secure-token"
+# GEMINI_API_KEY = "your-gemini-api-key"
