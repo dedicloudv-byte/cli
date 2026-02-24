@@ -188,8 +188,9 @@ export const htmlTemplate = `
     </div>
 
     <script>
+        const AUTH_TOKEN = "{{AUTH_TOKEN}}";
         let ws;
-        let chatHistory = [];
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
         let pendingAction = null;
         let isVpsConnected = false;
         let currentPath = "/";
@@ -423,7 +424,7 @@ export const htmlTemplate = `
             await sendChatWithMsg(message);
         }
 
-        function addMessage(text, sender) {
+        function addMessage(text, sender, save = true) {
             const div = document.createElement('div');
             div.className = sender === 'user'
                 ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md'
@@ -433,6 +434,21 @@ export const htmlTemplate = `
             div.innerText = text;
             elements.chatMessages.appendChild(div);
             elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+
+            if (save) {
+                const history = JSON.parse(localStorage.getItem('messages') || '[]');
+                history.push({ text, sender });
+                localStorage.setItem('messages', JSON.stringify(history));
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+            }
+        }
+
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('messages') || '[]');
+            if (history.length > 0) {
+                elements.chatMessages.innerHTML = '';
+                history.forEach(m => addMessage(m.text, m.sender, false));
+            }
         }
 
         function showApproval(data) {
@@ -528,8 +544,9 @@ export const htmlTemplate = `
             navigator.clipboard.writeText(cmd).then(() => showToast('Command disalin!', 'success'));
         };
 
-        elements.installCmd.innerText = \`curl -sSL \${window.location.protocol}//\${window.location.host}/install.sh | bash\`;
+        elements.installCmd.innerText = \`curl -sSL \${window.location.protocol}//\${window.location.host}/install.sh?token=\${AUTH_TOKEN} | bash\`;
 
+        loadHistory();
         connect();
     </script>
 </body>

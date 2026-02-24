@@ -13,7 +13,9 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Main Dashboard UI
 app.get('/', (c) => {
-  return c.html(htmlTemplate);
+  const token = c.env.AUTH_TOKEN || "your-secure-token";
+  const html = htmlTemplate.replace('{{AUTH_TOKEN}}', token);
+  return c.html(html);
 });
 
 // Serve Agent script
@@ -135,6 +137,7 @@ if __name__ == "__main__":
 // Serve Install script
 app.get('/install.sh', (c) => {
   const host = c.req.header('host');
+  const token = c.req.query('token') || c.env.AUTH_TOKEN || "your-secure-token";
   const protocol = host?.includes('localhost') ? 'http' : 'https';
   const wsProtocol = protocol === 'https' ? 'wss' : 'ws';
 
@@ -192,9 +195,19 @@ echo "Installing dependencies..."
 ./venv/bin/python3 -m pip install websockets psutil
 
 echo ""
-echo "Installation complete!"
-echo "To start the agent, run:"
-echo "  DASHBOARD_URL='${wsProtocol}://${host}/vps-connect' AUTH_TOKEN='your-token' \$INSTALL_DIR/venv/bin/python \$INSTALL_DIR/agent.py"
+echo "Installation complete! Starting agent..."
+# Create a start script
+cat > start.sh << EOF
+#!/bin/bash
+export INSTALL_DIR="\$INSTALL_DIR"
+export DASHBOARD_URL='${wsProtocol}://${host}/vps-connect'
+export AUTH_TOKEN='${token}'
+nohup "\$INSTALL_DIR/venv/bin/python" "\$INSTALL_DIR/agent.py" > "\$INSTALL_DIR/agent.log" 2>&1 &
+echo "Agent started in background. Log: \$INSTALL_DIR/agent.log"
+EOF
+
+chmod +x start.sh
+./start.sh
 `;
   return c.text(content);
 });

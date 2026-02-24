@@ -18,5 +18,8 @@ Your worker has access to the following bindings:
   - R2: dasborvps [simulated locally]
 [wrangler:inf] Ready on http://localhost:8787
 ⎔ Starting local server...
-[wrangler:inf] GET / 200 OK (9ms)
+[wrangler:inf] GET / 200 OK (20ms)
+[wrangler:inf] GET /browser-connect 101 Switching Protocols (13ms)
+[wrangler:inf] POST /api/chat 400 Bad Request (27ms)
+[wrangler:inf] GET / 200 OK (4ms)
 [wrangler:inf] GET /browser-connect 101 Switching Protocols (4ms)
