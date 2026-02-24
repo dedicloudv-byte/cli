@@ -11,6 +11,10 @@ bindings = [
 name = "VPS_BRIDGE"
 class_name = "VPSBridge"
 
+[[migrations]]
+tag = "v1"
+new_classes = ["VPSBridge"]
+
 [[r2_buckets]]
 binding = 'R2'
 bucket_name = 'dasborvps'
