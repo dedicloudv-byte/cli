@@ -4,6 +4,7 @@ import { htmlTemplate } from './ui';
 
 interface Env {
   VPS_BRIDGE: DurableObjectNamespace;
+  R2: R2Bucket;
   AUTH_TOKEN: string;
   GEMINI_API_KEY: string;
 }
@@ -194,10 +195,32 @@ app.get('/browser-connect', async (c) => {
 // AI Chat Endpoint
 app.post('/api/chat', async (c) => {
   const { message, history } = await c.req.json();
+
+  // Try to get API key from R2 first, then fallback to env
+  let apiKey = c.env.GEMINI_API_KEY;
+  const r2Key = await c.env.R2.get('gemini_api_key');
+  if (r2Key) {
+    apiKey = await r2Key.text();
+  }
+
   const id = c.env.VPS_BRIDGE.idFromName('global');
   const obj = c.env.VPS_BRIDGE.get(id);
 
-  return handleAiChat(c.env.GEMINI_API_KEY, message, history, obj);
+  return handleAiChat(apiKey, message, history, obj);
+});
+
+// Settings API
+app.get('/api/settings', async (c) => {
+  const key = await c.env.R2.get('gemini_api_key');
+  return c.json({ hasKey: !!key });
+});
+
+app.post('/api/settings', async (c) => {
+  const { apiKey } = await c.req.json();
+  if (!apiKey) return c.json({ error: 'API Key is required' }, 400);
+
+  await c.env.R2.put('gemini_api_key', apiKey);
+  return c.json({ success: true });
 });
 
 // Approval Endpoint

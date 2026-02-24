@@ -15,9 +15,17 @@ export const htmlTemplate = `
     <div class="container mx-auto p-4">
         <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
             <h1 class="text-3xl font-bold text-blue-400">VPS AI Dashboard</h1>
-            <div id="status" class="flex items-center">
-                <span class="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
-                <span>Disconnected</span>
+            <div class="flex items-center space-x-4">
+                <button id="settings-btn" class="text-gray-400 hover:text-white transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+                <div id="status" class="flex items-center">
+                    <span class="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                    <span>Disconnected</span>
+                </div>
             </div>
         </header>
 
@@ -83,6 +91,22 @@ export const htmlTemplate = `
                         curl -sSL https://.../install.sh | bash
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-blue-400">Settings</h2>
+            <div class="mb-6">
+                <label class="block text-gray-400 mb-2">Gemini API Key</label>
+                <input type="password" id="gemini-key-input" placeholder="Enter your Gemini API Key" class="w-full bg-gray-700 border border-gray-600 rounded p-3 focus:outline-none focus:border-blue-500">
+                <p id="key-status" class="mt-2 text-sm text-gray-500">Key is not set.</p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="close-settings-btn" class="px-4 py-2 text-gray-400 hover:text-white transition">Cancel</button>
+                <button id="save-settings-btn" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-bold transition">Save Changes</button>
             </div>
         </div>
     </div>
@@ -211,6 +235,48 @@ export const htmlTemplate = `
         document.getElementById('chat-input').onkeypress = (e) => e.key === 'Enter' && sendChat();
         document.getElementById('approve-btn').onclick = () => handleApproval(true);
         document.getElementById('reject-btn').onclick = () => handleApproval(false);
+
+        // Settings Logic
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const geminiKeyInput = document.getElementById('gemini-key-input');
+        const keyStatus = document.getElementById('key-status');
+
+        settingsBtn.onclick = async () => {
+            settingsModal.classList.remove('hidden');
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            if (data.hasKey) {
+                keyStatus.innerText = 'Key is already set. Enter a new one to overwrite.';
+                keyStatus.className = 'mt-2 text-sm text-green-500';
+            }
+        };
+
+        closeSettingsBtn.onclick = () => settingsModal.classList.add('hidden');
+
+        saveSettingsBtn.onclick = async () => {
+            const apiKey = geminiKeyInput.value.trim();
+            if (!apiKey) return alert('Please enter an API key');
+
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey })
+                });
+                if (res.ok) {
+                    alert('Settings saved successfully!');
+                    settingsModal.classList.add('hidden');
+                    geminiKeyInput.value = '';
+                } else {
+                    alert('Failed to save settings');
+                }
+            } catch (e) {
+                alert('Error saving settings: ' + e.message);
+            }
+        };
 
         document.getElementById('install-command').innerText = \`curl -sSL \${window.location.protocol}//\${window.location.host}/install.sh | bash\`;
 

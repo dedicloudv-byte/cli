@@ -11,6 +11,10 @@ bindings = [
 name = "VPS_BRIDGE"
 class_name = "VPSBridge"
 
+[[r2_buckets]]
+binding = 'R2'
+bucket_name = 'dasborvps'
+
 [vars]
 # In a real app, these should be secrets
 # AUTH_TOKEN = "your-secure-token"
