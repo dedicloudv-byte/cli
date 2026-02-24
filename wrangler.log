@@ -29,3 +29,68 @@ Your worker has access to the following bindings:
 [wrangler:inf] GET /browser-connect 101 Switching Protocols (17ms)
 [wrangler:inf] GET /install.sh 200 OK (5ms)
 [wrangler:inf] GET /install.sh 200 OK (3ms)
+⎔ Reloading local server...
+⎔ Reloading local server...
+⎔ Reloading local server...
+⎔ Reloading local server...
+fatal error: all goroutines are asleep - deadlock!
+
+goroutine 1 [chan receive]:
+github.com/evanw/esbuild/internal/helpers.(*ThreadSafeWaitGroup).Wait(...)
+	github.com/evanw/esbuild/internal/helpers/waitgroup.go:36
+main.runService.func2()
+	github.com/evanw/esbuild/cmd/esbuild/service.go:114 +0x59
+main.runService(0x1)
+	github.com/evanw/esbuild/cmd/esbuild/service.go:160 +0x4ed
+main.main()
+	github.com/evanw/esbuild/cmd/esbuild/main.go:236 +0xa29
+
+goroutine 34 [chan receive]:
+main.runService.func1()
+	github.com/evanw/esbuild/cmd/esbuild/service.go:98 +0x4a
+created by main.runService
+	github.com/evanw/esbuild/cmd/esbuild/service.go:97 +0x1e5
+
+goroutine 35 [chan receive]:
+main.(*serviceType).sendRequest(0xc00010de30, {0x8ee6e0, 0xc000ed20c0})
+	github.com/evanw/esbuild/cmd/esbuild/service.go:192 +0xfa
+main.runService.func3()
+	github.com/evanw/esbuild/cmd/esbuild/service.go:125 +0x39
+created by main.runService
+	github.com/evanw/esbuild/cmd/esbuild/service.go:122 +0x31c
+
+goroutine 22 [semacquire]:
+sync.runtime_Semacquire(0xc0000b1248?)
+	runtime/sema.go:62 +0x27
+sync.(*WaitGroup).Wait(0x0?)
+	sync/waitgroup.go:116 +0x4b
+github.com/evanw/esbuild/internal/bundler.ScanBundle({_, _, _, _, _, _}, {_, _}, _, {0xc00020eae0, ...}, ...)
+	github.com/evanw/esbuild/internal/bundler/bundler.go:1208 +0x948
+github.com/evanw/esbuild/pkg/api.rebuildImpl({0xc00009b020, {0xc0000b1b18, 0x1, 0x1}, {0x0, 0x0, 0x0}, {0x0, 0x1, 0x0, ...}, ...}, ...)
+	github.com/evanw/esbuild/pkg/api/api_impl.go:1483 +0x2ca
+github.com/evanw/esbuild/pkg/api.(*internalContext).rebuild(_)
+	github.com/evanw/esbuild/pkg/api/api_impl.go:1020 +0x27f
+github.com/evanw/esbuild/pkg/api.(*internalContext).Watch.func1()
+	github.com/evanw/esbuild/pkg/api/api_impl.go:1101 +0x2e
+github.com/evanw/esbuild/pkg/api.(*watcher).start.func1()
+	github.com/evanw/esbuild/pkg/api/watcher.go:109 +0x106
+created by github.com/evanw/esbuild/pkg/api.(*watcher).start
+	github.com/evanw/esbuild/pkg/api/watcher.go:82 +0x8a
+
+goroutine 2922 [chan send]:
+github.com/evanw/esbuild/internal/bundler.ScanBundle.func2()
+	github.com/evanw/esbuild/internal/bundler/bundler.go:1162 +0x2c5
+created by github.com/evanw/esbuild/internal/bundler.ScanBundle
+	github.com/evanw/esbuild/internal/bundler/bundler.go:1160 +0x93b
+
+goroutine 2920 [chan receive]:
+main.(*serviceType).sendRequest(0xc00010de30, {0x8ee6e0, 0xc000ed20f0})
+	github.com/evanw/esbuild/cmd/esbuild/service.go:192 +0xfa
+main.(*serviceType).convertPlugins.func2.2()
+	github.com/evanw/esbuild/cmd/esbuild/service.go:936 +0x113
+github.com/evanw/esbuild/pkg/api.(*pluginImpl).onStart.func1()
+	github.com/evanw/esbuild/pkg/api/api_impl.go:1880 +0x42
+github.com/evanw/esbuild/internal/bundler.ScanBundle.func1({{0x964f83, 0x12}, {0xc0000b1aa0, 0x1, 0x1}, {0xc0002330b0, 0x1, 0x1}, {0xc000233110, 0x1, ...}}, ...)
+	github.com/evanw/esbuild/internal/bundler/bundler.go:1131 +0x6a
+created by github.com/evanw/esbuild/internal/bundler.ScanBundle
+	github.com/evanw/esbuild/internal/bundler/bundler.go:1130 +0xf3d

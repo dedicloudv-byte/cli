@@ -346,6 +346,7 @@ export class VPSBridge {
           if (data.token === expectedToken) {
             (server as any).authenticated = true;
             console.log('VPS Authenticated successfully');
+            this.broadcastToBrowsers({ type: 'vps_status', connected: true });
           } else {
             console.error('VPS Auth failed: Invalid token');
             server.close(4001, 'Unauthorized');
@@ -369,6 +370,7 @@ export class VPSBridge {
 
     server.addEventListener('close', () => {
       this.vpsSocket = null;
+      this.broadcastToBrowsers({ type: 'vps_status', connected: false });
       console.log('VPS Disconnected');
     });
   }
@@ -376,6 +378,12 @@ export class VPSBridge {
   async handleBrowserConnection(server: WebSocket) {
     server.accept();
     this.browserSockets.add(server);
+
+    // Send initial status
+    server.send(JSON.stringify({
+      type: 'vps_status',
+      connected: !!(this.vpsSocket && (this.vpsSocket as any).authenticated)
+    }));
 
     server.addEventListener('close', () => {
       this.browserSockets.delete(server);
