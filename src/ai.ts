@@ -58,13 +58,8 @@ export async function handleAiChat(apiKey: string, message: string, history: any
   // Prepare contents with history
   const contents = [...history, { role: 'user', parts: [{ text: message }] }];
 
-  const systemInstruction = {
-    parts: [{ text: "Anda adalah AI Dashboard VPS. Selalu gunakan simbol/emoji (seperti 🚀, 📂, ⚠️, ✅) di setiap balasan. Gunakan teks tebal (**teks**) untuk istilah kunci, judul, atau hal penting. Jika memberikan penjelasan panjang, susunlah ke bawah (vertikal) menggunakan poin-poin atau baris baru agar mudah dibaca. Gunakan Bahasa Indonesia." }]
-  };
-
   const result = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    systemInstruction,
     contents: contents,
     config: { tools }
   });
@@ -117,7 +112,6 @@ export async function handleAiChat(apiKey: string, message: string, history: any
 
     const secondResult = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      systemInstruction,
       contents: updatedContents,
       config: { tools }
     });

@@ -424,25 +424,13 @@ export const htmlTemplate = `
             await sendChatWithMsg(message);
         }
 
-        window.formatMessage = function(text, sender) {
-            if (sender === 'user') return text;
-
-            // Convert **bold** to <b> with color
-            let formatted = text.replace(/\\*\\*(.*?)\\*\\*/g, '<b class="text-blue-300">$1</b>');
-
-            // Convert newlines to <br>
-            formatted = formatted.replace(/\\n/g, '<br>');
-
-            return formatted;
-        }
-
         window.addMessage = function(text, sender, save = true) {
             const div = document.createElement('div');
             div.className = sender === 'user'
                 ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md break-words whitespace-pre-wrap'
                 : 'bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500 shadow-sm break-words whitespace-pre-wrap';
 
-            div.innerHTML = formatMessage(text, sender);
+            div.innerText = text;
             elements.chatMessages.appendChild(div);
             elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 
