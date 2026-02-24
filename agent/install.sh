@@ -37,7 +37,7 @@ if ! python3 -m venv venv 2>/dev/null; then
 fi
 source venv/bin/activate
 
-if ! command -v pip &> /dev/null; then
+if ! ./venv/bin/python3 -m pip --version &> /dev/null; then
     echo "Installing pip..."
     PY_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
     if [ "$PY_VER" == "3.8" ]; then
@@ -45,11 +45,11 @@ if ! command -v pip &> /dev/null; then
     else
         PIP_URL="https://bootstrap.pypa.io/get-pip.py"
     fi
-    curl -sSL "$PIP_URL" | python3
+    curl -sSL "$PIP_URL" | ./venv/bin/python3
 fi
 
 echo "Installing dependencies..."
-pip install websockets psutil
+./venv/bin/python3 -m pip install websockets psutil
 
 echo ""
 echo "Installation complete!"

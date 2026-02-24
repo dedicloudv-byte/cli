@@ -141,9 +141,9 @@ app.get('/install.sh', (c) => {
   const content = `#!/bin/bash
 set -e
 echo "--- VPS AI Dashboard Agent Installer ---"
-export INSTALL_DIR="\\$HOME/vps-ai-agent"
-mkdir -p "\\$INSTALL_DIR"
-cd "\\$INSTALL_DIR"
+export INSTALL_DIR="\$HOME/vps-ai-agent"
+mkdir -p "\$INSTALL_DIR"
+cd "\$INSTALL_DIR"
 
 echo "Downloading agent.py..."
 curl -sSL "${protocol}://${host}/agent.py" -o agent.py
@@ -177,7 +177,7 @@ if ! python3 -m venv venv 2>/dev/null; then
 fi
 source venv/bin/activate
 
-if ! command -v pip &> /dev/null; then
+if ! ./venv/bin/python3 -m pip --version &> /dev/null; then
     echo "Installing pip..."
     PY_VER=\$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
     if [ "\$PY_VER" == "3.8" ]; then
@@ -185,16 +185,16 @@ if ! command -v pip &> /dev/null; then
     else
         PIP_URL="https://bootstrap.pypa.io/get-pip.py"
     fi
-    curl -sSL "\$PIP_URL" | python3
+    curl -sSL "\$PIP_URL" | ./venv/bin/python3
 fi
 
 echo "Installing dependencies..."
-pip install websockets psutil
+./venv/bin/python3 -m pip install websockets psutil
 
 echo ""
 echo "Installation complete!"
 echo "To start the agent, run:"
-echo "  DASHBOARD_URL='${wsProtocol}://${host}/vps-connect' AUTH_TOKEN='your-token' \\$INSTALL_DIR/venv/bin/python \\$INSTALL_DIR/agent.py"
+echo "  DASHBOARD_URL='${wsProtocol}://${host}/vps-connect' AUTH_TOKEN='your-token' \$INSTALL_DIR/venv/bin/python \$INSTALL_DIR/agent.py"
 `;
   return c.text(content);
 });

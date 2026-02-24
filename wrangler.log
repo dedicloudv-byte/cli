@@ -23,3 +23,9 @@ Your worker has access to the following bindings:
 [wrangler:inf] GET / 200 OK (12ms)
 [wrangler:inf] GET /browser-connect 101 Switching Protocols (15ms)
 [wrangler:inf] GET /install.sh 200 OK (8ms)
+⎔ Reloading local server...
+⎔ Reloading local server...
+[wrangler:inf] GET / 200 OK (40ms)
+[wrangler:inf] GET /browser-connect 101 Switching Protocols (17ms)
+[wrangler:inf] GET /install.sh 200 OK (5ms)
+[wrangler:inf] GET /install.sh 200 OK (3ms)
