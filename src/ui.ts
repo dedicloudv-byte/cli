@@ -171,7 +171,14 @@ export const htmlTemplate = `
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message, history: chatHistory })
                 });
-                const data = await response.json();
+
+                let data;
+                const text = await response.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                }
 
                 if (data.type === 'text') {
                     addMessage(data.text, 'ai');

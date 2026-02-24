@@ -194,19 +194,38 @@ app.get('/browser-connect', async (c) => {
 
 // AI Chat Endpoint
 app.post('/api/chat', async (c) => {
-  const { message, history } = await c.req.json();
+  try {
+    const { message, history } = await c.req.json();
 
-  // Try to get API key from R2 first, then fallback to env
-  let apiKey = c.env.GEMINI_API_KEY;
-  const r2Key = await c.env.R2.get('gemini_api_key');
-  if (r2Key) {
-    apiKey = await r2Key.text();
+    // Try to get API key from R2 first, then fallback to env
+    let apiKey = c.env.GEMINI_API_KEY;
+    try {
+      const r2Key = await c.env.R2.get('gemini_api_key');
+      if (r2Key) {
+        apiKey = await r2Key.text();
+      }
+    } catch (e) {
+      console.error('Error reading from R2:', e);
+    }
+
+    if (!apiKey) {
+      return c.json({
+        type: 'text',
+        text: 'Gemini API Key is not configured. Please set it in Settings.'
+      }, 400);
+    }
+
+    const id = c.env.VPS_BRIDGE.idFromName('global');
+    const obj = c.env.VPS_BRIDGE.get(id);
+
+    return await handleAiChat(apiKey, message, history, obj);
+  } catch (error: any) {
+    console.error('AI Chat Error:', error);
+    return c.json({
+      type: 'text',
+      text: 'Error communicating with AI: ' + error.message
+    }, 500);
   }
-
-  const id = c.env.VPS_BRIDGE.idFromName('global');
-  const obj = c.env.VPS_BRIDGE.get(id);
-
-  return handleAiChat(apiKey, message, history, obj);
 });
 
 // Settings API
