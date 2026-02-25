@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
-    "@playwright/test": "^1.58.2",
     "hono": "^4.6.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240529.0",
+    "@playwright/test": "^1.58.2",
     "wrangler": "^3.57.1"
   }
 }

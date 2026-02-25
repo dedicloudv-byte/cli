@@ -56,19 +56,23 @@ export async function handleAiChat(apiKey: string, message: string, history: any
   ];
 
   // Prepare contents (history + new message)
-  // History is expected to be an array of { role, parts: [{ text: ... }] }
   const contents = Array.isArray(history) ? history.map(h => ({
       role: h.role,
-      parts: h.parts.map((p: any) => ({ text: p.text || "" }))
+      parts: h.parts
   })) : [];
 
   contents.push({ role: "user", parts: [{ text: message }] });
+
+  const systemInstruction = "Anda adalah asisten VPS AI Dashboard. Anda MEMILIKI akses penuh ke VPS melalui alat (tools) yang disediakan. Anda DAPAT menganalisa, memperbaiki, dan membuat file atau konfigurasi sistem. Jika user bertanya tentang file atau kondisi sistem, Anda WAJIB menggunakan tools (vps_list_files, vps_read_file, dll) untuk melihat data aslinya. Jangan pernah memberikan jawaban asumsi jika Anda bisa memastikannya dengan tools. Anda sangat ahli dalam Linux, DevOps, dan troubleshooting.";
 
   try {
     const result = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: contents,
-      tools: tools
+      config: {
+        systemInstruction: systemInstruction,
+        tools: tools
+      }
     });
 
     // Handle function calls
@@ -122,7 +126,10 @@ export async function handleAiChat(apiKey: string, message: string, history: any
       const secondResult = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
           contents: secondContents,
-          tools: tools
+          config: {
+            systemInstruction: systemInstruction,
+            tools: tools
+          }
       });
 
       const secondCandidate = secondResult.candidates?.[0];
