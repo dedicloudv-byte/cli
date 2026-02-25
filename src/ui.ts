@@ -6,10 +6,20 @@ export const htmlTemplate = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VPS AI Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         .sidebar-transition { transition: transform 0.3s ease-in-out; }
         .sidebar-hidden { transform: translateX(-100%); }
         .sidebar-visible { transform: translateX(0); }
+
+        /* Markdown Styles */
+        .markdown-content code { background: #1a202c; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+        .markdown-content pre { background: #1a202c; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+        .markdown-content p { margin-bottom: 0.5rem; }
+        .markdown-content p:last-child { margin-bottom: 0; }
+        .markdown-content strong { color: #60a5fa; font-weight: bold; }
+        .markdown-content ul, .markdown-content ol { margin-left: 1.5rem; margin-bottom: 0.5rem; }
+        .markdown-content li { list-style-type: disc; }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans overflow-x-hidden">
@@ -41,9 +51,11 @@ export const htmlTemplate = `
                     </button>
                     <h1 class="text-xl font-bold text-blue-400">AI Dashboard</h1>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <button id="settings-btn" class="text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
-                    <div id="status" class="flex items-center bg-gray-900 px-3 py-1 rounded-full border border-gray-700">
+                <div class="flex items-center space-x-1 sm:space-x-4">
+                    <button id="settings-btn" class="text-gray-400 hover:text-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full transition-all hover:bg-gray-700 cursor-pointer relative z-[60]" aria-label="Pengaturan">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </button>
+                    <div id="status" class="flex items-center bg-gray-900 px-2 sm:px-3 py-1 rounded-full border border-gray-700">
                         <span id="status-indicator" class="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
                         <span id="status-text" class="text-xs uppercase hidden sm:inline">Offline</span>
                     </div>
@@ -114,15 +126,26 @@ export const htmlTemplate = `
     </div>
 
     <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] p-4">
-        <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 w-full max-w-md shadow-2xl">
+        <div class="bg-gray-800 p-6 md:p-8 rounded-2xl border border-gray-700 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
             <h2 class="text-2xl font-bold mb-6 text-blue-400">Pengaturan AI</h2>
-            <div class="mb-6">
-                <label class="block text-sm text-gray-400 mb-2">Gemini API Key</label>
-                <input type="password" id="gemini-key-input" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+            <div class="mb-8">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Simpan Key Baru</h3>
+                <div class="space-y-3">
+                    <input type="password" id="gemini-key-input" placeholder="Masukkan Gemini API Key" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    <button id="save-settings-btn" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold transition shadow-lg">Simpan Key</button>
+                </div>
             </div>
-            <div class="flex space-x-3">
-                <button id="close-settings-btn" class="flex-grow py-3 text-gray-400">Batal</button>
-                <button id="save-settings-btn" class="flex-grow bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold">Simpan</button>
+
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Daftar Key Tersimpan</h3>
+                <div id="keys-list" class="space-y-2">
+                    <div class="text-gray-500 italic text-sm">Memuat daftar key...</div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-700">
+                <button id="close-settings-btn" class="w-full py-3 text-gray-400 hover:text-white transition font-medium text-center">Tutup</button>
             </div>
         </div>
     </div>
@@ -161,7 +184,7 @@ export const htmlTemplate = `
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             const bg = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-green-600' : 'bg-blue-600');
-            toast.className = \`\${bg} text-white px-4 py-2 rounded-lg shadow-xl\`;
+            toast.className = bg + " text-white px-4 py-2 rounded-lg shadow-xl";
             toast.innerText = msg;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
@@ -169,7 +192,7 @@ export const htmlTemplate = `
 
         function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(\`\${protocol}//\${window.location.host}/browser-connect\`);
+            ws = new WebSocket(protocol + "//" + window.location.host + "/browser-connect?token=" + AUTH_TOKEN);
             ws.onopen = () => {
                 elements.statusIndicator.className = 'w-3 h-3 rounded-full bg-green-500 mr-2';
                 elements.statusText.innerText = 'Connected';
@@ -211,7 +234,7 @@ export const htmlTemplate = `
             elements.diskText.innerText = data.disk.percent + '%';
             elements.diskBar.style.width = data.disk.percent + '%';
             const uptime = Math.floor(data.uptime);
-            elements.uptime.innerText = \`\${Math.floor(uptime/3600)}j \${Math.floor((uptime%3600)/60)}m \${uptime%60}s\`;
+            elements.uptime.innerText = Math.floor(uptime/3600) + "j " + Math.floor((uptime%3600)/60) + "m " + (uptime%60) + "s";
         }
 
         async function fetchFiles(path) {
@@ -219,7 +242,7 @@ export const htmlTemplate = `
             currentPath = path;
             elements.currentPath.innerText = path;
             try {
-                const res = await fetch('/api/approve', {
+                const res = await fetch('/api/approve?token=' + AUTH_TOKEN, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'ls', params: { path } })
@@ -241,10 +264,10 @@ export const htmlTemplate = `
             files.forEach(file => {
                 const div = document.createElement('div');
                 div.className = 'p-2 hover:bg-gray-700 rounded cursor-pointer flex justify-between';
-                div.innerHTML = \`<span>\${file.is_dir ? '📁' : '📄'} \${file.name}</span>\`;
+                div.innerHTML = '<span>' + (file.is_dir ? '📁' : '📄') + ' ' + file.name + '</span>';
                 div.onclick = () => {
                     if (file.is_dir) fetchFiles(currentPath === '/' ? '/' + file.name : currentPath + '/' + file.name);
-                    else sendChatWithMsg(\`Analisa file \${currentPath}/\${file.name}\`);
+                    else sendChatWithMsg("Analisa file " + currentPath + "/" + file.name);
                 };
                 elements.fileList.appendChild(div);
             });
@@ -252,8 +275,13 @@ export const htmlTemplate = `
 
         function addMessage(text, sender) {
             const div = document.createElement('div');
-            div.className = sender === 'user' ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md' : 'bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500';
-            div.innerText = text;
+            const isAi = sender === 'ai';
+            div.className = (sender === 'user' ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md' : 'bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500') + " markdown-content";
+            if (isAi) {
+                div.innerHTML = marked.parse(text);
+            } else {
+                div.innerText = text;
+            }
             elements.chatMessages.appendChild(div);
             elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 
@@ -266,7 +294,7 @@ export const htmlTemplate = `
         async function sendChatWithMsg(message) {
             addMessage(message, 'user');
             try {
-                const res = await fetch('/api/chat', {
+                const res = await fetch('/api/chat?token=' + AUTH_TOKEN, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message, history: chatHistory })
@@ -305,7 +333,7 @@ export const htmlTemplate = `
         document.getElementById('approve-btn').onclick = async () => {
             const action = pendingAction;
             document.getElementById('approval-box').classList.add('hidden');
-            const res = await fetch('/api/approve', {
+            const res = await fetch('/api/approve?token=' + AUTH_TOKEN, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: action.action === 'vps_write_file' ? 'write' : 'exec', params: action.params })
@@ -315,6 +343,110 @@ export const htmlTemplate = `
         };
         document.getElementById('reject-btn').onclick = () => { document.getElementById('approval-box').classList.add('hidden'); addMessage('Aksi ditolak', 'user'); };
 
+        // Settings Modal Logic
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const geminiKeyInput = document.getElementById('gemini-key-input');
+        const keysList = document.getElementById('keys-list');
+
+        async function fetchSettings() {
+            keysList.innerHTML = '<div class="text-gray-500 italic text-sm">Memuat...</div>';
+            try {
+                const res = await fetch('/api/settings?token=' + AUTH_TOKEN);
+                const data = await res.json();
+                renderKeys(data.keys, data.activeKey);
+            } catch (e) {
+                keysList.innerHTML = '<div class="text-red-500 text-sm">Gagal memuat key.</div>';
+            }
+        }
+
+        function renderKeys(keys, activeId) {
+            if (!keys || keys.length === 0) {
+                keysList.innerHTML = '<div class="text-gray-500 italic text-sm">Belum ada key tersimpan.</div>';
+                return;
+            }
+            keysList.innerHTML = '';
+            // Order by oldest first (the order they were added)
+            keys.sort((a, b) => new Date(a.uploaded) - new Date(b.uploaded)).forEach(key => {
+                const isActive = key.id === activeId;
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-3 rounded-lg border " + (isActive ? "border-blue-500 bg-blue-900 bg-opacity-20" : "border-gray-700 bg-gray-900");
+
+                const time = new Date(key.uploaded).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+                let actions = "";
+                if (isActive) {
+                    actions = '<span class="text-[10px] bg-blue-600 text-white px-2 py-1 rounded font-bold uppercase tracking-tighter">Aktif</span>';
+                } else {
+                    actions = '<button onclick="selectKey(\\'' + key.id + '\\')" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded font-bold uppercase tracking-tighter transition">Pilih</button>';
+                }
+                actions += '<button onclick="deleteKey(\\'' + key.id + '\\')" class="text-[10px] bg-red-900 hover:bg-red-800 text-red-200 px-2 py-1 rounded font-bold uppercase tracking-tighter transition ml-1">Hapus</button>';
+
+                div.innerHTML = \`
+                    <div class="overflow-hidden mr-2">
+                        <div class="text-xs font-bold text-gray-300 truncate">\${key.id}</div>
+                        <div class="text-[10px] text-gray-500">\${time}</div>
+                    </div>
+                    <div class="flex space-x-1 flex-shrink-0">\${actions}</div>
+                \`;
+                keysList.appendChild(div);
+            });
+        }
+
+        window.selectKey = async (id) => {
+            const res = await fetch('/api/settings/select?token=' + AUTH_TOKEN, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            if (res.ok) {
+                showToast('Key diaktifkan', 'success');
+                fetchSettings();
+            }
+        };
+
+        window.deleteKey = async (id) => {
+            if (!confirm('Hapus key ini?')) return;
+            const res = await fetch('/api/settings/delete?token=' + AUTH_TOKEN, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            if (res.ok) {
+                showToast('Key dihapus', 'success');
+                fetchSettings();
+            }
+        };
+
+        settingsBtn.onclick = () => {
+            settingsModal.classList.remove('hidden');
+            fetchSettings();
+        };
+        document.getElementById('close-settings-btn').onclick = () => settingsModal.classList.add('hidden');
+
+        saveSettingsBtn.onclick = async () => {
+            const apiKey = geminiKeyInput.value.trim();
+            if (!apiKey) return alert('Masukkan API key');
+            saveSettingsBtn.disabled = true;
+            saveSettingsBtn.innerText = 'Menyimpan...';
+            try {
+                const res = await fetch('/api/settings?token=' + AUTH_TOKEN, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey })
+                });
+                if (res.ok) {
+                    showToast('Key baru disimpan', 'success');
+                    geminiKeyInput.value = '';
+                    fetchSettings();
+                }
+            } finally {
+                saveSettingsBtn.disabled = false;
+                saveSettingsBtn.innerText = 'Simpan Key';
+            }
+        };
+
         window.copyInstallCmd = () => { navigator.clipboard.writeText(elements.installCmd.innerText); showToast('Command disalin!', 'success'); };
 
         // Load History
@@ -322,14 +454,19 @@ export const htmlTemplate = `
             const msgs = JSON.parse(localStorage.getItem('messages') || '[]');
             msgs.forEach(m => {
                 const div = document.createElement('div');
-                div.className = m.sender === 'user' ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md' : 'bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500';
-                div.innerText = m.text;
+                const isAi = m.sender === 'ai';
+                div.className = (m.sender === 'user' ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md' : 'bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500') + " markdown-content";
+                if (isAi) {
+                    div.innerHTML = marked.parse(m.text);
+                } else {
+                    div.innerText = m.text;
+                }
                 elements.chatMessages.appendChild(div);
             });
             chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
         } catch(e) {}
 
-        elements.installCmd.innerText = \`curl -sSL \${window.location.protocol}//\${window.location.host}/install.sh?token=\${AUTH_TOKEN} | bash\`;
+        elements.installCmd.innerText = "curl -sSL " + window.location.protocol + "//" + window.location.host + "/install.sh?token=" + AUTH_TOKEN + " | bash";
         connect();
     </script>
 </body>

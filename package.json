@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
+    "@playwright/test": "^1.58.2",
     "hono": "^4.6.0"
   },
   "devDependencies": {

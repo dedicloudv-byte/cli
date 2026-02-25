@@ -1,7 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 
 export async function handleAiChat(apiKey: string, message: string, history: any[], vpsBridge: any) {
-  const ai = new GoogleGenAI({ apiKey });
+  const genAI = new GoogleGenAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3-flash-preview",
+  });
 
   const tools = [
     {
@@ -56,16 +59,17 @@ export async function handleAiChat(apiKey: string, message: string, history: any
   ];
 
   // Prepare contents with history
-  const contents = [...history, { role: 'user', parts: [{ text: message }] }];
-
-  const result = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: contents,
-    config: { tools }
+  // history in SDK format is { role, parts: [{ text: ... }] }
+  const chat = model.startChat({
+    history: history,
+    tools: tools
   });
 
-  const part = result.candidates?.[0]?.content?.parts?.find(p => p.functionCall);
-  const call = part?.functionCall;
+  const result = await chat.sendMessage(message);
+  const response = await result.response;
+
+  const calls = response.functionCalls();
+  const call = calls ? calls[0] : null;
 
   if (call) {
     const callArgs = call.args as any;
@@ -75,7 +79,8 @@ export async function handleAiChat(apiKey: string, message: string, history: any
         type: "approval_required",
         action: call.name,
         params: callArgs,
-        message: `AI wants to ${call.name === "vps_write_file" ? "write to " + callArgs.path : "execute command: " + callArgs.script}`
+        message: `AI ingin ${call.name === "vps_write_file" ? "menulis ke file " + callArgs.path : "menjalankan perintah: " + callArgs.script}`,
+        history: await chat.getHistory()
       });
     }
 
@@ -96,42 +101,25 @@ export async function handleAiChat(apiKey: string, message: string, history: any
     }
 
     // Send tool result back to Gemini to get final text
-    const updatedContents = [
-      ...contents,
-      result.candidates![0].content, // The assistant's call
-      {
-        role: 'user',
-        parts: [{
-          functionResponse: {
-            name: call.name,
-            response: { content: toolResult }
-          }
-        }]
+    const secondResult = await chat.sendMessage([{
+      functionResponse: {
+        name: call.name,
+        response: { content: toolResult }
       }
-    ];
+    }]);
 
-    const secondResult = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: updatedContents,
-      config: { tools }
-    });
+    const secondResponse = await secondResult.response;
 
     return Response.json({
       type: "text",
-      text: secondResult.text,
-      history: [
-        ...updatedContents,
-        secondResult.candidates![0].content
-      ]
+      text: secondResponse.text(),
+      history: await chat.getHistory()
     });
   }
 
   return Response.json({
     type: "text",
-    text: result.text,
-    history: [
-      ...contents,
-      result.candidates![0].content
-    ]
+    text: response.text(),
+    history: await chat.getHistory()
   });
 }

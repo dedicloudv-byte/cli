@@ -11,10 +11,40 @@ interface Env {
 
 const app = new Hono<{ Bindings: Env }>();
 
+// Simple Auth Middleware
+app.use('*', async (c, next) => {
+  const path = c.req.path;
+  // Allow installer and agent script without auth (they have their own token check in params or are public)
+  if (path === '/install.sh' || path === '/agent.py') {
+    return await next();
+  }
+
+  const expectedToken = c.env.AUTH_TOKEN || "your-secure-token";
+  const token = c.req.query('token') || c.req.header('Authorization')?.replace('Bearer ', '');
+
+  // For the main UI, if no token, we will let it load but it will fail API calls
+  // OR we can redirect to a simple login.
+  // For simplicity, we'll inject a "check auth" in the UI.
+
+  if (path.startsWith('/api/') || path === '/browser-connect' || path === '/vps-connect') {
+     if (token !== expectedToken) {
+       return c.json({ error: 'Unauthorized' }, 401);
+     }
+  }
+
+  await next();
+});
+
 // Main Dashboard UI
 app.get('/', (c) => {
-  const token = c.env.AUTH_TOKEN || "your-secure-token";
-  const html = htmlTemplate.replace('{{AUTH_TOKEN}}', token);
+  const expectedToken = c.env.AUTH_TOKEN || "your-secure-token";
+  const token = c.req.query('token');
+
+  if (token !== expectedToken) {
+    return c.html('<h1>Dashboard VPS AI - Akses Ditolak</h1><p>Silakan gunakan link dashboard yang benar (dengan ?token=...).</p>', 401);
+  }
+
+  const html = htmlTemplate.replace('{{AUTH_TOKEN}}', expectedToken);
   return c.html(html);
 });
 
@@ -200,7 +230,7 @@ echo "Installation complete! Starting agent..."
 cat > start.sh << EOF
 #!/bin/bash
 export INSTALL_DIR="\$INSTALL_DIR"
-export DASHBOARD_URL='${wsProtocol}://${host}/vps-connect'
+export DASHBOARD_URL='${wsProtocol}://${host}/vps-connect?token=${token}'
 export AUTH_TOKEN='${token}'
 nohup "\$INSTALL_DIR/venv/bin/python" "\$INSTALL_DIR/agent.py" > "\$INSTALL_DIR/agent.log" 2>&1 &
 echo "Agent started in background. Log: \$INSTALL_DIR/agent.log"
@@ -243,12 +273,20 @@ app.post('/api/chat', async (c) => {
   try {
     const { message, history } = await c.req.json();
 
-    // Try to get API key from R2 first, then fallback to env
+    // Try to get active API key from R2
     let apiKey = c.env.GEMINI_API_KEY;
     try {
-      const r2Key = await c.env.R2.get('gemini_api_key');
-      if (r2Key) {
-        apiKey = await r2Key.text();
+      const activeKeyIdObj = await c.env.R2.get('active_gemini_key');
+      if (activeKeyIdObj) {
+        const activeKeyId = await activeKeyIdObj.text();
+        const fullKeyObj = await c.env.R2.get('gemini_keys/' + activeKeyId);
+        if (fullKeyObj) {
+          apiKey = await fullKeyObj.text();
+        }
+      } else {
+        // Fallback to old single key if present
+        const oldKey = await c.env.R2.get('gemini_api_key');
+        if (oldKey) apiKey = await oldKey.text();
       }
     } catch (e) {
       console.error('Error reading from R2:', e);
@@ -276,15 +314,51 @@ app.post('/api/chat', async (c) => {
 
 // Settings API
 app.get('/api/settings', async (c) => {
-  const key = await c.env.R2.get('gemini_api_key');
-  return c.json({ hasKey: !!key });
+  const list = await c.env.R2.list({ prefix: 'gemini_keys/' });
+  const keys = list.objects.map(obj => ({
+    id: obj.key.replace('gemini_keys/', ''),
+    uploaded: obj.uploaded
+  }));
+
+  const activeKeyObj = await c.env.R2.get('active_gemini_key');
+  const activeKey = activeKeyObj ? await activeKeyObj.text() : null;
+
+  return c.json({ keys, activeKey });
 });
 
 app.post('/api/settings', async (c) => {
   const { apiKey } = await c.req.json();
   if (!apiKey) return c.json({ error: 'API Key is required' }, 400);
 
-  await c.env.R2.put('gemini_api_key', apiKey);
+  const keyId = apiKey.length > 8 ? apiKey.substring(0, 4) + '...' + apiKey.substring(apiKey.length - 4) : apiKey;
+
+  const fullKey = 'gemini_keys/' + keyId;
+  await c.env.R2.put(fullKey, apiKey);
+
+  const activeKey = await c.env.R2.get('active_gemini_key');
+  if (!activeKey) {
+    await c.env.R2.put('active_gemini_key', keyId);
+  }
+
+  return c.json({ success: true, id: keyId });
+});
+
+app.post('/api/settings/select', async (c) => {
+  const { id } = await c.req.json();
+  await c.env.R2.put('active_gemini_key', id);
+  return c.json({ success: true });
+});
+
+app.post('/api/settings/delete', async (c) => {
+  const { id } = await c.req.json();
+  await c.env.R2.delete('gemini_keys/' + id);
+
+  const activeKeyObj = await c.env.R2.get('active_gemini_key');
+  const activeKey = activeKeyObj ? await activeKeyObj.text() : null;
+  if (activeKey === id) {
+    await c.env.R2.delete('active_gemini_key');
+  }
+
   return c.json({ success: true });
 });
 
