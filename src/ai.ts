@@ -86,7 +86,7 @@ export async function handleAiChat(apiKey: string, message: string, history: any
           type: "approval_required",
           action: call.name,
           params: callArgs,
-          message: `AI ingin \${call.name === "vps_write_file" ? "menulis ke file " + callArgs.path : "menjalankan perintah: " + callArgs.script}`,
+          message: `AI ingin ${call.name === "vps_write_file" ? "menulis ke file " + callArgs.path : "menjalankan perintah: " + callArgs.script}`,
           history: contents
         });
       }

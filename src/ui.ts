@@ -13,13 +13,13 @@ export const htmlTemplate = `
         .sidebar-visible { transform: translateX(0); }
 
         /* Markdown Styles */
-        .markdown-content code { background: #1a202c; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
-        .markdown-content pre { background: #1a202c; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
-        .markdown-content p { margin-bottom: 0.5rem; }
+        .markdown-content code { background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .markdown-content pre { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 12px; overflow-x: auto; margin: 12px 0; border: 1px solid rgba(255,255,255,0.1); }
+        .markdown-content p { margin-bottom: 0.75rem; line-height: 1.6; }
         .markdown-content p:last-child { margin-bottom: 0; }
-        .markdown-content strong { color: #60a5fa; font-weight: bold; }
-        .markdown-content ul, .markdown-content ol { margin-left: 1.5rem; margin-bottom: 0.5rem; }
-        .markdown-content li { list-style-type: disc; }
+        .markdown-content strong { color: #60a5fa; font-weight: 700; }
+        .markdown-content ul, .markdown-content ol { margin-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-content li { list-style-type: disc; margin-bottom: 0.25rem; }
     </style>
 </head>
 <body class="bg-gray-900 text-white font-sans overflow-x-hidden">
@@ -273,22 +273,37 @@ export const htmlTemplate = `
             });
         }
 
-        function addMessage(text, sender) {
-            const div = document.createElement('div');
+        function addMessage(text, sender, save = true) {
+            const container = document.createElement('div');
             const isAi = sender === 'ai';
-            div.className = (sender === 'user' ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md' : 'bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500') + " markdown-content";
+            container.className = \`flex flex-col mb-6 \${isAi ? 'items-start' : 'items-end'}\`;
+
+            const label = document.createElement('span');
+            label.className = 'text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 px-2';
+            label.innerText = isAi ? 'AI Assistant' : 'Anda';
+            container.appendChild(label);
+
+            const div = document.createElement('div');
+            div.className = (isAi
+                ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-tl-none border-l-4 border-blue-500'
+                : 'bg-blue-600 text-white rounded-2xl rounded-tr-none shadow-lg shadow-blue-900/20')
+                + " p-4 max-w-[90%] sm:max-w-[80%] markdown-content transition-all";
+
             if (isAi) {
                 div.innerHTML = marked.parse(text);
             } else {
                 div.innerText = text;
             }
-            elements.chatMessages.appendChild(div);
+            container.appendChild(div);
+
+            elements.chatMessages.appendChild(container);
             elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 
-            // Save to localStorage
-            const history = JSON.parse(localStorage.getItem('messages') || '[]');
-            history.push({ text, sender });
-            localStorage.setItem('messages', JSON.stringify(history));
+            if (save) {
+                const history = JSON.parse(localStorage.getItem('messages') || '[]');
+                history.push({ text, sender });
+                localStorage.setItem('messages', JSON.stringify(history));
+            }
         }
 
         async function sendChatWithMsg(message) {
@@ -452,17 +467,7 @@ export const htmlTemplate = `
         // Load History
         try {
             const msgs = JSON.parse(localStorage.getItem('messages') || '[]');
-            msgs.forEach(m => {
-                const div = document.createElement('div');
-                const isAi = m.sender === 'ai';
-                div.className = (m.sender === 'user' ? 'bg-blue-600 p-3 rounded-lg max-w-[85%] ml-auto shadow-md' : 'bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500') + " markdown-content";
-                if (isAi) {
-                    div.innerHTML = marked.parse(m.text);
-                } else {
-                    div.innerText = m.text;
-                }
-                elements.chatMessages.appendChild(div);
-            });
+            msgs.forEach(m => addMessage(m.text, m.sender, false));
             chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
         } catch(e) {}
 
