@@ -68,9 +68,7 @@ export async function handleAiChat(apiKey: string, message: string, history: any
     const result = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: contents,
-      config: {
-          tools: tools
-      }
+      tools: tools
     });
 
     // Handle function calls
@@ -124,7 +122,7 @@ export async function handleAiChat(apiKey: string, message: string, history: any
       const secondResult = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
           contents: secondContents,
-          config: { tools: tools }
+          tools: tools
       });
 
       const secondCandidate = secondResult.candidates?.[0];
