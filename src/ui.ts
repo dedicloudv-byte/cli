@@ -151,7 +151,7 @@ export const htmlTemplate = `
     </div>
 
     <script>
-        const AUTH_TOKEN = "{{AUTH_TOKEN}}";
+        const AUTH_TOKEN = "{{AUTH_TOKEN}}" || new URLSearchParams(window.location.search).get('token');
         let ws;
         let chatHistory = [];
         let pendingAction = null;

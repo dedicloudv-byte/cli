@@ -1,10 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 export async function handleAiChat(apiKey: string, message: string, history: any[], vpsBridge: any) {
-  const genAI = new GoogleGenAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",
-  });
+  const ai = new GoogleGenAI({ apiKey });
 
   const tools = [
     {
@@ -58,68 +55,100 @@ export async function handleAiChat(apiKey: string, message: string, history: any
     }
   ];
 
-  // Prepare contents with history
-  // history in SDK format is { role, parts: [{ text: ... }] }
-  const chat = model.startChat({
-    history: history,
-    tools: tools
-  });
+  // Prepare contents (history + new message)
+  // History is expected to be an array of { role, parts: [{ text: ... }] }
+  const contents = Array.isArray(history) ? history.map(h => ({
+      role: h.role,
+      parts: h.parts.map((p: any) => ({ text: p.text || "" }))
+  })) : [];
 
-  const result = await chat.sendMessage(message);
-  const response = await result.response;
+  contents.push({ role: "user", parts: [{ text: message }] });
 
-  const calls = response.functionCalls();
-  const call = calls ? calls[0] : null;
+  try {
+    const result = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: contents,
+      config: {
+          tools: tools
+      }
+    });
 
-  if (call) {
-    const callArgs = call.args as any;
-    // Check if it's a dangerous action that needs approval
-    if (call.name === "vps_write_file" || call.name === "vps_execute_command") {
+    // Handle function calls
+    const candidate = result.candidates?.[0];
+    const callPart = candidate?.content?.parts?.find((p: any) => p.functionCall);
+
+    if (callPart && callPart.functionCall) {
+      const call = callPart.functionCall;
+      const callArgs = call.args as any;
+
+      if (call.name === "vps_write_file" || call.name === "vps_execute_command") {
+        return Response.json({
+          type: "approval_required",
+          action: call.name,
+          params: callArgs,
+          message: `AI ingin \${call.name === "vps_write_file" ? "menulis ke file " + callArgs.path : "menjalankan perintah: " + callArgs.script}`,
+          history: contents
+        });
+      }
+
+      let toolResult;
+      if (call.name === "vps_list_files") {
+        const vpsRes = await vpsBridge.fetch(new Request('http://do/execute', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'ls', params: { path: callArgs.path } })
+        }));
+        toolResult = await vpsRes.json();
+      } else if (call.name === "vps_read_file") {
+        const vpsRes = await vpsBridge.fetch(new Request('http://do/execute', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'read', params: { path: callArgs.path } })
+        }));
+        toolResult = await vpsRes.json();
+      }
+
+      // Call back to AI with the tool result
+      const secondContents = [
+          ...contents,
+          candidate.content,
+          {
+              role: "user",
+              parts: [{
+                  functionResponse: {
+                      name: call.name,
+                      response: { content: toolResult }
+                  }
+              }]
+          }
+      ];
+
+      const secondResult = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: secondContents,
+          config: { tools: tools }
+      });
+
+      const secondCandidate = secondResult.candidates?.[0];
       return Response.json({
-        type: "approval_required",
-        action: call.name,
-        params: callArgs,
-        message: `AI ingin ${call.name === "vps_write_file" ? "menulis ke file " + callArgs.path : "menjalankan perintah: " + callArgs.script}`,
-        history: await chat.getHistory()
+        type: "text",
+        text: secondCandidate?.content?.parts?.[0]?.text || "No response.",
+        history: [...secondContents, secondCandidate.content]
       });
     }
 
-    // Safe actions: execute immediately and return result to AI
-    let toolResult;
-    if (call.name === "vps_list_files") {
-      const vpsRes = await vpsBridge.fetch(new Request('http://do/execute', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'ls', params: { path: callArgs.path } })
-      }));
-      toolResult = await vpsRes.json();
-    } else if (call.name === "vps_read_file") {
-      const vpsRes = await vpsBridge.fetch(new Request('http://do/execute', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'read', params: { path: callArgs.path } })
-      }));
-      toolResult = await vpsRes.json();
-    }
-
-    // Send tool result back to Gemini to get final text
-    const secondResult = await chat.sendMessage([{
-      functionResponse: {
-        name: call.name,
-        response: { content: toolResult }
-      }
-    }]);
-
-    const secondResponse = await secondResult.response;
+    // Use property .text if available, else try to find text part
+    const textResponse = result.text || candidate?.content?.parts?.[0]?.text || "No response.";
 
     return Response.json({
       type: "text",
-      text: secondResponse.text(),
-      history: await chat.getHistory()
+      text: textResponse,
+      history: [...contents, candidate.content]
     });
+  } catch (err: any) {
+    console.error("AI Error:", err);
+    return Response.json({
+        type: "text",
+        text: "Error AI: " + err.message,
+        history: contents
+    }, { status: 500 });
   }
-
-  return Response.json({
-    type: "text",
-    text: response.text(),
-    history: await chat.getHistory()
-  });
 }
