@@ -94,8 +94,11 @@ export const htmlTemplate = `
                         <span>🤖 AI Assistant</span>
                         <span class="text-xs bg-gray-600 px-2 py-1 rounded">Gemini 3 Flash</span>
                     </div>
-                    <div id="chat-messages" class="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-30 scroll-smooth">
-                        <div class="bg-gray-700 p-3 rounded-lg max-w-[85%] border-l-4 border-blue-500">Halo! Ada yang bisa saya bantu?</div>
+                    <div id="chat-messages" class="flex-grow overflow-x-hidden overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-30 scroll-smooth">
+                        <div class="flex flex-col mb-6 w-full items-start">
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 px-2">AI Assistant</span>
+                            <div class="bg-gray-800 text-gray-100 rounded-2xl rounded-tl-none border-l-4 border-blue-500 p-3 sm:p-4 max-w-[85%] sm:max-w-[75%] break-words">Halo! Ada yang bisa saya bantu?</div>
+                        </div>
                     </div>
                     <div id="approval-box" class="hidden bg-blue-900 border-t border-blue-500 p-4">
                         <p id="approval-message" class="mb-3 text-sm font-bold">Persetujuan Diperlukan</p>
@@ -106,7 +109,11 @@ export const htmlTemplate = `
                     </div>
                     <div class="p-4 bg-gray-800 border-t border-gray-700 flex space-x-2">
                         <input type="text" id="chat-input" placeholder="Tanyakan sesuatu..." class="flex-grow bg-gray-900 border border-gray-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="send-btn" class="bg-blue-600 hover:bg-blue-700 rounded-lg px-6 font-bold shadow-lg">Kirim</button>
+                        <button id="send-btn" class="bg-blue-600 hover:bg-blue-700 rounded-lg px-4 flex items-center justify-center font-bold shadow-lg transition-transform active:scale-95" aria-label="Kirim">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 <div class="lg:col-span-4 space-y-4">
@@ -276,7 +283,7 @@ export const htmlTemplate = `
         function addMessage(text, sender, save = true) {
             const container = document.createElement('div');
             const isAi = sender === 'ai';
-            container.className = \`flex flex-col mb-6 \${isAi ? 'items-start' : 'items-end'}\`;
+            container.className = \`flex flex-col mb-6 w-full \${isAi ? 'items-start' : 'items-end'}\`;
 
             const label = document.createElement('span');
             label.className = 'text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 px-2';
@@ -287,7 +294,7 @@ export const htmlTemplate = `
             div.className = (isAi
                 ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-tl-none border-l-4 border-blue-500'
                 : 'bg-blue-600 text-white rounded-2xl rounded-tr-none shadow-lg shadow-blue-900/20')
-                + " p-4 max-w-[90%] sm:max-w-[80%] markdown-content transition-all";
+                + " p-3 sm:p-4 max-w-[85%] sm:max-w-[75%] break-words markdown-content transition-all";
 
             if (isAi) {
                 div.innerHTML = marked.parse(text);
