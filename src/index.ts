@@ -146,6 +146,15 @@ async def handle_command(command_data):
                 f.write(content)
             return {"status": "success", "message": f"File {path} written successfully"}
 
+        elif cmd_type == "delete":
+            import shutil
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+                return {"status": "success", "message": f"Directory {path} deleted successfully"}
+            else:
+                os.remove(path)
+                return {"status": "success", "message": f"File {path} deleted successfully"}
+
         elif cmd_type == "exec":
             script = command_data.get("script", "")
             result = subprocess.run(script, shell=True, capture_output=True, text=True)
@@ -410,10 +419,14 @@ app.post('/api/approve', async (c) => {
   const id = c.env.VPS_BRIDGE.idFromName('global');
   const obj = c.env.VPS_BRIDGE.get(id);
 
+  let mappedAction = 'exec';
+  if (action === 'vps_write_file') mappedAction = 'write';
+  else if (action === 'vps_delete_file') mappedAction = 'delete';
+
   // Forward to DO to execute on VPS
   const response = await obj.fetch(new Request('http://do/execute', {
     method: 'POST',
-    body: JSON.stringify({ action: action === 'vps_write_file' ? 'write' : 'exec', params })
+    body: JSON.stringify({ action: mappedAction, params })
   }));
   const toolResult = await response.json();
 

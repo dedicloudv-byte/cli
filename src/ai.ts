@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-const systemInstruction = "Anda adalah asisten VPS AI Dashboard. Anda MEMILIKI akses penuh ke VPS melalui alat (tools) yang disediakan. Anda DAPAT menganalisa, memperbaiki, dan membuat file atau konfigurasi sistem. Jika user bertanya tentang file atau kondisi sistem, Anda WAJIB menggunakan tools (vps_list_files, vps_read_file, dll) untuk melihat data aslinya. Jangan pernah memberikan jawaban asumsi jika Anda bisa memastikannya dengan tools. Anda sangat ahli dalam Linux, DevOps, dan troubleshooting.";
+const systemInstruction = "Anda adalah asisten VPS AI Dashboard. Anda MEMILIKI akses penuh ke VPS melalui alat (tools) yang disediakan. Anda DAPAT menganalisa, memperbaiki, membuat, dan MENGHAPUS file atau konfigurasi sistem. Jika user bertanya tentang file atau kondisi sistem, Anda WAJIB menggunakan tools (vps_list_files, vps_read_file, dll) untuk melihat data aslinya. Jangan pernah memberikan jawaban asumsi jika Anda bisa memastikannya dengan tools. Anda sangat ahli dalam Linux, DevOps, dan troubleshooting.";
 
 const tools = [
   {
@@ -37,6 +37,17 @@ const tools = [
             content: { type: "STRING", description: "The content to write" }
           },
           required: ["path", "content"]
+        }
+      },
+      {
+        name: "vps_delete_file",
+        description: "Delete a file or directory on the VPS. REQUIRES USER APPROVAL.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            path: { type: "STRING", description: "The file or directory path" }
+          },
+          required: ["path"]
         }
       },
       {
@@ -112,13 +123,18 @@ export async function handleAiChat(apiKey: string, message: string, history: any
       const call = callPart.functionCall;
       const callArgs = call.args as any;
 
-      if (call.name === "vps_write_file" || call.name === "vps_execute_command") {
+      if (call.name === "vps_write_file" || call.name === "vps_execute_command" || call.name === "vps_delete_file") {
+        let msg = "";
+        if (call.name === "vps_write_file") msg = "menulis ke file " + callArgs.path;
+        else if (call.name === "vps_delete_file") msg = "menghapus file/folder " + callArgs.path;
+        else msg = "menjalankan perintah: " + callArgs.script;
+
         return Response.json({
           type: "approval_required",
           action: call.name,
           params: callArgs,
           call_name: call.name,
-          message: `AI ingin ${call.name === "vps_write_file" ? "menulis ke file " + callArgs.path : "menjalankan perintah: " + callArgs.script}`,
+          message: `AI ingin ${msg}`,
           history: [...contents, candidate.content]
         });
       }
