@@ -90,9 +90,19 @@ export const htmlTemplate = `
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div class="lg:col-span-8 bg-gray-800 rounded-xl border border-gray-700 flex flex-col h-[600px] shadow-xl overflow-hidden">
-                    <div class="bg-gray-700 p-4 font-bold flex justify-between items-center">
-                        <span>🤖 AI Assistant</span>
-                        <span class="text-xs bg-gray-600 px-2 py-1 rounded">Gemini 3 Flash</span>
+                    <div class="bg-gray-700 p-3 sm:p-4 font-bold flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <span>🤖 AI</span>
+                            <span class="hidden sm:inline text-xs bg-gray-600 px-2 py-1 rounded">Gemini 3 Flash</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="new-chat-btn" title="Chat Baru" class="p-1.5 bg-gray-600 hover:bg-blue-600 rounded transition" aria-label="Chat Baru">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                            </button>
+                            <button id="clear-history-btn" title="Hapus Riwayat" class="p-1.5 bg-gray-600 hover:bg-red-600 rounded transition" aria-label="Hapus Riwayat">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
                     </div>
                     <div id="chat-messages" class="flex-grow overflow-x-hidden overflow-y-auto p-4 space-y-4 bg-gray-900 bg-opacity-30 scroll-smooth">
                         <div class="flex flex-col mb-6 w-full items-start">
@@ -359,6 +369,29 @@ export const htmlTemplate = `
         elements.sidebarOverlay.onclick = () => toggleSidebar(false);
         elements.sendBtn.onclick = () => { const m = elements.chatInput.value.trim(); if (m) { elements.chatInput.value = ''; sendChatWithMsg(m); } };
         elements.chatInput.onkeypress = (e) => e.key === 'Enter' && elements.sendBtn.click();
+
+        document.getElementById('new-chat-btn').onclick = () => {
+            if (confirm('Mulai chat baru? Memori AI akan direset.')) {
+                chatHistory = [];
+                localStorage.removeItem('chatHistory');
+                showToast('Chat baru dimulai', 'success');
+            }
+        };
+
+        document.getElementById('clear-history-btn').onclick = () => {
+            if (confirm('Hapus semua riwayat chat?')) {
+                chatHistory = [];
+                localStorage.removeItem('chatHistory');
+                localStorage.removeItem('messages');
+                elements.chatMessages.innerHTML = \`
+                    <div class="flex flex-col mb-6 w-full items-start">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 px-2">AI Assistant</span>
+                        <div class="bg-gray-800 text-gray-100 rounded-2xl rounded-tl-none border-l-4 border-blue-500 p-3 sm:p-4 max-w-[85%] sm:max-w-[75%] break-words">Riwayat dihapus. Ada lagi yang bisa saya bantu?</div>
+                    </div>
+                \`;
+                showToast('Riwayat dihapus', 'success');
+            }
+        };
 
         document.getElementById('approve-btn').onclick = async () => {
             const action = pendingAction;
