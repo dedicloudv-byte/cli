@@ -355,13 +355,28 @@ export const htmlTemplate = `
         document.getElementById('approve-btn').onclick = async () => {
             const action = pendingAction;
             document.getElementById('approval-box').classList.add('hidden');
-            const res = await fetch('/api/approve?token=' + AUTH_TOKEN, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: action.action === 'vps_write_file' ? 'write' : 'exec', params: action.params })
-            });
-            const result = await res.json();
-            addMessage(result.status === 'success' ? 'Berhasil executed' : 'Error: ' + result.message, 'ai');
+            try {
+                const res = await fetch('/api/approve?token=' + AUTH_TOKEN, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: action.action,
+                        params: action.params,
+                        history: action.history,
+                        call_name: action.call_name
+                    })
+                });
+                const result = await res.json();
+                if (result.type === 'text') {
+                    addMessage(result.text, 'ai');
+                    chatHistory = result.history;
+                    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                } else {
+                    addMessage(result.status === 'success' ? 'Berhasil dieksekusi.' : 'Error: ' + (result.message || result.ai_error), 'ai');
+                }
+            } catch (e) {
+                addMessage('Gagal mengeksekusi aksi: ' + e.message, 'ai');
+            }
         };
         document.getElementById('reject-btn').onclick = () => { document.getElementById('approval-box').classList.add('hidden'); addMessage('Aksi ditolak', 'user'); };
 

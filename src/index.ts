@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
-import { handleAiChat } from './ai';
+import { Hono, Context } from 'hono';
+import { handleAiChat, handleAiToolResponse } from './ai';
 import { htmlTemplate } from './ui';
 
 interface Env {
@@ -312,25 +312,7 @@ app.get('/browser-connect', async (c) => {
 app.post('/api/chat', async (c) => {
   try {
     const { message, history } = await c.req.json();
-
-    // Try to get active API key from R2
-    let apiKey = c.env.GEMINI_API_KEY;
-    try {
-      const activeKeyIdObj = await c.env.R2.get('active_gemini_key');
-      if (activeKeyIdObj) {
-        const activeKeyId = await activeKeyIdObj.text();
-        const fullKeyObj = await c.env.R2.get('gemini_keys/' + activeKeyId);
-        if (fullKeyObj) {
-          apiKey = await fullKeyObj.text();
-        }
-      } else {
-        // Fallback to old single key if present
-        const oldKey = await c.env.R2.get('gemini_api_key');
-        if (oldKey) apiKey = await oldKey.text();
-      }
-    } catch (e) {
-      console.error('Error reading from R2:', e);
-    }
+    const apiKey = await getApiKey(c);
 
     if (!apiKey) {
       return c.json({
@@ -402,19 +384,52 @@ app.post('/api/settings/delete', async (c) => {
   return c.json({ success: true });
 });
 
+async function getApiKey(c: Context<{ Bindings: Env }>) {
+  let apiKey = c.env.GEMINI_API_KEY;
+  try {
+    const activeKeyIdObj = await c.env.R2.get('active_gemini_key');
+    if (activeKeyIdObj) {
+      const activeKeyId = await activeKeyIdObj.text();
+      const fullKeyObj = await c.env.R2.get('gemini_keys/' + activeKeyId);
+      if (fullKeyObj) {
+        apiKey = await fullKeyObj.text();
+      }
+    } else {
+      const oldKey = await c.env.R2.get('gemini_api_key');
+      if (oldKey) apiKey = await oldKey.text();
+    }
+  } catch (e) {
+    console.error('Error reading from R2:', e);
+  }
+  return apiKey;
+}
+
 // Approval Endpoint
 app.post('/api/approve', async (c) => {
-  const { action, params } = await c.req.json();
+  const { action, params, history, call_name } = await c.req.json();
   const id = c.env.VPS_BRIDGE.idFromName('global');
   const obj = c.env.VPS_BRIDGE.get(id);
 
   // Forward to DO to execute on VPS
   const response = await obj.fetch(new Request('http://do/execute', {
     method: 'POST',
-    body: JSON.stringify({ action, params })
+    body: JSON.stringify({ action: action === 'vps_write_file' ? 'write' : 'exec', params })
   }));
+  const toolResult = await response.json();
 
-  return c.json(await response.json());
+  if (toolResult.status === 'success' && history && call_name) {
+      const apiKey = await getApiKey(c);
+      if (apiKey) {
+          try {
+              const aiResponse = await handleAiToolResponse(apiKey, call_name, toolResult, history);
+              return c.json(aiResponse);
+          } catch (e: any) {
+              return c.json({ status: 'success', ai_error: e.message, data: toolResult });
+          }
+      }
+  }
+
+  return c.json(toolResult);
 });
 
 export default app;
