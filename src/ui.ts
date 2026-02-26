@@ -336,7 +336,10 @@ export const htmlTemplate = `
                     document.getElementById('approval-message').innerText = data.message;
                     document.getElementById('approval-box').classList.remove('hidden');
                 }
-            } catch (e) { addMessage('Error: ' + (e.message || String(e)), 'ai'); }
+            } catch (e) {
+                const msg = e.message || (typeof e === 'string' ? e : JSON.stringify(e));
+                addMessage('Error: ' + (msg && msg !== '{}' ? msg : 'Koneksi ke AI terputus'), 'ai');
+            }
         }
 
         function toggleSidebar(show) {
@@ -377,7 +380,8 @@ export const htmlTemplate = `
                     chatHistory = result.history;
                     localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
                 } else {
-                    addMessage(result.status === 'success' ? 'Berhasil dieksekusi.' : 'Error: ' + (result.message || result.ai_error), 'ai');
+                    const errMsg = result.message || result.ai_error || result.stderr || (result.status === 'error' ? 'Aksi gagal dieksekusi' : 'Terjadi kesalahan tidak diketahui');
+                    addMessage(result.status === 'success' ? 'Berhasil dieksekusi.' : 'Error: ' + errMsg, 'ai');
                 }
             } catch (e) {
                 addMessage('Gagal mengeksekusi aksi: ' + e.message, 'ai');

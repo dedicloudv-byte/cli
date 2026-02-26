@@ -171,9 +171,10 @@ export async function handleAiChat(apiKey: string, message: string, history: any
     });
   } catch (err: any) {
     console.error("AI Error:", err);
+    const errMsg = err.message || (typeof err === 'string' ? err : JSON.stringify(err)) || "Terjadi kesalahan pada sistem AI";
     return Response.json({
         type: "text",
-        text: "Kesalahan AI: " + (err.message || String(err) || "Unknown Error"),
+        text: "Kesalahan AI: " + (errMsg && errMsg !== '{}' ? errMsg : 'Respon tidak valid dari provider'),
         history: contents
     }, { status: 500 });
   }

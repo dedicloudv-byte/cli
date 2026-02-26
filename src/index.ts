@@ -162,7 +162,8 @@ async def handle_command(command_data):
                 "status": "success" if result.returncode == 0 else "error",
                 "stdout": result.stdout,
                 "stderr": result.stderr,
-                "code": result.returncode
+                "code": result.returncode,
+                "message": result.stderr if result.returncode != 0 else "Execution successful"
             }
         else:
             return {"status": "error", "message": f"Unknown command: {cmd_type}"}
