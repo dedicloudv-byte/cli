@@ -87,10 +87,11 @@ export async function handleAiToolResponse(apiKey: string, callName: string, too
     });
 
     const candidate = result.candidates?.[0];
+    const text = result.text || candidate?.content?.parts?.[0]?.text || "Maaf, AI tidak memberikan respon teks.";
     return {
         type: "text",
-        text: result.text || candidate?.content?.parts?.[0]?.text || "No response.",
-        history: [...contents, candidate.content]
+        text: text,
+        history: [...contents, candidate?.content].filter(Boolean)
     };
 }
 
@@ -135,7 +136,7 @@ export async function handleAiChat(apiKey: string, message: string, history: any
           params: callArgs,
           call_name: call.name,
           message: `AI ingin ${msg}`,
-          history: [...contents, candidate.content]
+          history: [...contents, candidate?.content].filter(Boolean)
         });
       }
 
@@ -155,24 +156,24 @@ export async function handleAiChat(apiKey: string, message: string, history: any
       }
 
       // Call back to AI with the tool result
-      const toolHistory = [...contents, candidate.content];
+      const toolHistory = [...contents, candidate?.content].filter(Boolean);
       const aiResponse = await handleAiToolResponse(apiKey, call.name, toolResult, toolHistory);
       return Response.json(aiResponse);
     }
 
     // Use property .text if available, else try to find text part
-    const textResponse = result.text || candidate?.content?.parts?.[0]?.text || "No response.";
+    const textResponse = result.text || candidate?.content?.parts?.[0]?.text || "Maaf, AI tidak memberikan respon teks.";
 
     return Response.json({
       type: "text",
       text: textResponse,
-      history: [...contents, candidate.content]
+      history: [...contents, candidate?.content].filter(Boolean)
     });
   } catch (err: any) {
     console.error("AI Error:", err);
     return Response.json({
         type: "text",
-        text: "Error AI: " + err.message,
+        text: "Kesalahan AI: " + (err.message || String(err) || "Unknown Error"),
         history: contents
     }, { status: 500 });
   }

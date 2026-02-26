@@ -338,7 +338,7 @@ app.post('/api/chat', async (c) => {
     console.error('AI Chat Error:', error);
     return c.json({
       type: 'text',
-      text: 'Error communicating with AI: ' + error.message
+      text: 'Error communicating with AI: ' + (error.message || String(error) || 'Unknown Error')
     }, 500);
   }
 });

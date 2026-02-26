@@ -281,6 +281,7 @@ export const htmlTemplate = `
         }
 
         function addMessage(text, sender, save = true) {
+            if (text === undefined || text === null) text = 'Kesalahan: Data pesan tidak ditemukan.';
             const container = document.createElement('div');
             const isAi = sender === 'ai';
             container.className = \`flex flex-col mb-6 w-full \${isAi ? 'items-start' : 'items-end'}\`;
@@ -321,6 +322,10 @@ export const htmlTemplate = `
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message, history: chatHistory })
                 });
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    throw new Error(errorData.text || 'Gagal terhubung ke AI (' + res.status + ')');
+                }
                 const data = await res.json();
                 if (data.type === 'text') {
                     addMessage(data.text, 'ai');
@@ -331,7 +336,7 @@ export const htmlTemplate = `
                     document.getElementById('approval-message').innerText = data.message;
                     document.getElementById('approval-box').classList.remove('hidden');
                 }
-            } catch (e) { addMessage('Error: ' + e.message, 'ai'); }
+            } catch (e) { addMessage('Error: ' + (e.message || String(e)), 'ai'); }
         }
 
         function toggleSidebar(show) {
